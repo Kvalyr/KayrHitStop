@@ -1,0 +1,11 @@
+## Interface: 80000
+## Notes: Improved Combat Impacts
+## Author: Kvalyr
+## OptionalDeps: !KLibDev
+## SavedVariables: KayrHitStop_SavedVariables
+## SavedVariablesPerCharacter: KayrHitStop_SavedVariablesPerChar
+
+KayrLib\KayrLib.xml
+KayrHitStop.lua
+KayrHitStop_Stop.lua
+KayrHitStop_Sound.lua
