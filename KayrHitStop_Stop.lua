@@ -9,6 +9,7 @@ local KayrHitStop = _G["KayrHitStop"]
 -- ----------------------------------------------------------------	
 local enableHitStop = true
 local enableHitSound = true
+local hitSoundCritsOnly = true
 local ignoreAoE = false
 local meleeOnly = false
 local spellBookOnly = false
@@ -29,7 +30,8 @@ function KayrHitStop.UpdateConfigvalues(CfgScheme, element, ...)
 	CfgScheme = CfgScheme or KayrHitStop.cfgScheme
 	KLib:Con("KayrHitStop.UpdateConfigvalues", KLScheme, element, ...)
 	enableHitStop = CfgScheme:Get("enableHitStop")
-	enableHitSound = CfgScheme:Get("enableHitSound")
+    enableHitSound = CfgScheme:Get("enableHitSound")
+    hitSoundCritsOnly = CfgScheme:Get("hitSoundCritsOnly")
 	ignoreAoE = CfgScheme:Get("ignoreAoE")
 	meleeOnly = CfgScheme:Get("meleeOnly")
 	spellBookOnly = CfgScheme:Get("spellBookOnly")
@@ -127,7 +129,12 @@ function KayrHitStop:HitStop(timestamp, event_type)
 	--KayrHitStop:Con("HitStop: ", timestamp, event_type, hitstopDuration, hitstopDelay, hitsoundDelay, frameRateCoeff)
 	
 	if enableHitSound and (event_type ~= "SWING_DAMAGE" or AutoAttackHitSound) then
-		C_Timer.After(hitsoundDelay, KayrHitStop.HitSound)
+        if not hitSoundCritsOnly then
+            C_Timer.After(hitsoundDelay, KayrHitStop.HitSound)
+        end
+        if critical then
+			C_Timer.After(hitsoundDelay, KayrHitStop.HitSound_Crit)
+		end
 	end
 
 	-- Set currentHitStopDuration so that KayrHitStop.Stopper can read this value (from outer scope). Saves us from creating a closure here for the sake of passing an arg.

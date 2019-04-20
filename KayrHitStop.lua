@@ -29,6 +29,7 @@
 			KayrHitStop.cfgScheme = KayrHitStop:RegisterScheme("KHS_Scheme_Config", KayrHitStop.Cfg.general, KayrHitStop_SavedVariables, nil, nil) -- No SVPC
 			KayrHitStop.cfgScheme:NewElement("enableHitStop", true, KayrHitStop.UpdateConfigvalues, "class", "class")
 			KayrHitStop.cfgScheme:NewElement("enableHitSound", true, KayrHitStop.UpdateConfigvalues, "class", "class")
+			KayrHitStop.cfgScheme:NewElement("hitSoundCritsOnly", true, KayrHitStop.UpdateConfigvalues, "class", "class")
 			
 			KayrHitStop.cfgScheme:NewElement("ignoreAoE", false, KayrHitStop.UpdateConfigvalues, "class", "class")
 			KayrHitStop.cfgScheme:NewElement("meleeOnly", false, KayrHitStop.UpdateConfigvalues, "class", "class")
