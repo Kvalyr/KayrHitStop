@@ -93,13 +93,21 @@ function KayrHitStop.Stopper(dur_seconds)
 	dur_seconds = dur_seconds or currentHitStopDuration or baseHitstopDuration
 	local dur = dur_seconds * 1000 -- Milliseconds
 
+    local frameRateCoeff = min(GetFramerate() / 60, 1)  -- Reduce hitstop duration when framerate is below 60
+	-- Adjust hitstop duration for current framerate. Longer hitstops feel worse when framerate is already low
+	frameRateCoeff = max(frameRateCoeff, minimumHitFrameRateMultiplier) -- No less than 50%
+	dur = dur * frameRateCoeff * frameRateCoeff  
+
+    if softLocked then KayrHitStop:Debug("Skipping due to softLock") return end
+    softLocked = true
 	local start = debugprofilestop()
 	local stop = start + dur
 	local cur = debugprofilestop()
 	while cur < stop do
 		cur = debugprofilestop()
 		if cur >= stop then break end
-	end	
+    end
+    softLocked = false
 end
 
 
@@ -118,11 +126,8 @@ function KayrHitStop:HitStop(timestamp, event_type)
 	local hitstopDuration = baseHitstopDuration
 	local hitstopDelay = baseHitstopDelay
 	local hitsoundDelay = hitstopDelay
-	local frameRateCoeff = min(GetFramerate() / 60, 1)  -- Reduce hitstop duration when framerate is below 60
-	
-	-- Adjust hitstop duration for current framerate. Longer hitstops feel worse when framerate is already low
-	frameRateCoeff = max(frameRateCoeff, minimumHitFrameRateMultiplier) -- No less than 50%
-	hitstopDelay = hitstopDelay * frameRateCoeff
+    
+
 	
 	-- Adjust hitstop duration for faster-attacking specs (Dual-Wield, etc.)
 	if UnitAttackSpeed("player") <= fastAttackThreshold then
