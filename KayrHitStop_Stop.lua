@@ -19,6 +19,8 @@ local fastAttackThreshold = 1.75
 local fastAttackCoefficient = 0.75 -- Hitstop Duration multiplier for players that attack faster (Arms, Frost, Feral, Rogue, etc.)
 local minimumHitFrameRateMultiplier = 0.5 -- HitStop duration is adjusted for framerate below 60fps between <minimumHitFrameRateMultiplier> and 1.0
 
+local slomoSteps = 10
+
  -- 80ms feels good, anything up to 200ms works well as a matter of preference
 local baseHitstopDuration = 0.075  --0.125
 
@@ -39,6 +41,7 @@ function KayrHitStop.UpdateConfigvalues(CfgScheme, element, ...)
 	AutoAttackHitStop = CfgScheme:Get("AutoAttackHitStop")
 	fastAttackThreshold = CfgScheme:Get("fastAttackThreshold")
 	fastAttackCoefficient = CfgScheme:Get("fastAttackCoefficient")
+	specialAttackCoefficient = CfgScheme:Get("specialAttackCoefficient")
 	minimumHitFrameRateMultiplier = CfgScheme:Get("minimumHitFrameRateMultiplier")
 	baseHitstopDuration = CfgScheme:Get("baseHitstopDuration")
 	baseHitstopDelay = CfgScheme:Get("baseHitstopDelay")
@@ -99,6 +102,8 @@ function KayrHitStop.Stopper(dur_seconds)
 	dur = dur * frameRateCoeff * frameRateCoeff  
 
     if softLocked then KayrHitStop:Debug("Skipping due to softLock") return end
+    KayrHitStop:Debug("Slomo step", dur)
+
     softLocked = true
 	local start = debugprofilestop()
 	local stop = start + dur
@@ -110,22 +115,48 @@ function KayrHitStop.Stopper(dur_seconds)
     softLocked = false
 end
 
+function KayrHitStop.SloMoStopper(dur_seconds, steps)
+    dur_seconds = dur_seconds or currentHitStopDuration or baseHitstopDuration
+    steps = steps or slomoSteps
+
+    local function slomoSteps()
+        local i
+        for i=1, steps-1 do
+            local function stop()
+                local slomo_dur_seconds = dur_seconds * (1 - (i / steps))
+                KayrHitStop.Stopper(slomo_dur_seconds)
+            end
+            --C_Timer.After(dur_seconds * i * 1.5, KayrHitStop.Stopper)
+            C_Timer.After(dur_seconds * i * 1.5, stop)
+        end
+    end
+
+    -- Do one long stop then a tail of shorter stops
+    local firstStepDur = dur_seconds * (steps * 0.25)
+    C_Timer.After(firstStepDur, slomoSteps)
+    KayrHitStop.Stopper(firstStepDur)
+end
 
 -- --------------------------------------------------------------------------------------------------------------------------------
 -- HitStop
 -- ----------------------------------------------------------------	
 local last_hit_time
-function KayrHitStop:HitStop(timestamp, event_type)
+function KayrHitStop:HitStop(timestamp, event_type, critical, spellName)
 	-- Throttle - No overlapping hitstops
 	if last_hit_time and timestamp <= (last_hit_time + baseHitstopDuration) then 
-		--KayrHitStop:Con("Skip due to throttle:", last_hit_time, timestamp, last_hit_time + baseHitstopDuration, spellName)
+		--KayrHitStop:Debug("Skip due to throttle:", last_hit_time, timestamp, last_hit_time + baseHitstopDuration, spellName)
 		return 
 	end 
-	last_hit_time = timestamp	
+	last_hit_time = timestamp
+
+	local idealWorldLatencyMs = 25 -- Treating 25ms as ideal latency
+	local _, _, _, worldLatencyMs = GetNetStats()
+	local latencyOffset = (worldLatencyMs - idealWorldLatencyMs) / 1000 -- ms
 	
 	local hitstopDuration = baseHitstopDuration
-	local hitstopDelay = baseHitstopDelay
-	local hitsoundDelay = hitstopDelay
+	local hitstopDelay = baseHitstopDelay + latencyOffset
+	local hitsoundDelay = hitstopDelay * 0.4
+    hitStopDelay = max(baseHitstopDelay, idealWorldLatencyMs / 1000)
     
 
 	
@@ -158,9 +189,19 @@ function KayrHitStop:HitStop(timestamp, event_type)
 		end
 	end
 
-	-- Set currentHitStopDuration so that KayrHitStop.Stopper can read this value (from outer scope). Saves us from creating a closure here for the sake of passing an arg.
-	currentHitStopDuration = hitstopDuration
-	if enableHitStop and (event_type ~= "SWING_DAMAGE" or AutoAttackHitStop) then
-		C_Timer.After(hitstopDelay, KayrHitStop.Stopper)
-	end
+    if enableHitStop and (event_type ~= "SWING_DAMAGE" or AutoAttackHitStop) then
+        -- Slomo
+        local slomo = true
+        if slomo then
+            hitstopDuration = hitstopDuration * 5
+            hitstopDuration = hitstopDuration / slomoSteps
+            -- Set currentHitStopDuration so that KayrHitStop.Stopper can read this value (from outer scope). Saves us from creating a closure here for the sake of passing an arg.
+            currentHitStopDuration = hitstopDuration
+            C_Timer.After(hitstopDelay, KayrHitStop.SloMoStopper)
+        else
+            -- Set currentHitStopDuration so that KayrHitStop.Stopper can read this value (from outer scope). Saves us from creating a closure here for the sake of passing an arg.
+            currentHitStopDuration = hitstopDuration
+            C_Timer.After(hitstopDelay, KayrHitStop.Stopper)
+        end
+    end
 end
