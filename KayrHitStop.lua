@@ -42,6 +42,9 @@
 			
 			-- Hitstop Duration multiplier for players that attack faster (Arms, Frost, Feral, Rogue, etc.)
 			KayrHitStop.cfgScheme:NewElement("fastAttackCoefficient", 0.75, KayrHitStop.UpdateConfigvalues, "class", "class")
+            
+            -- Hitstop duration multiplier for attacks/spells that land sooner (Attacks that use the spceial attack animation, such as Death Strike)
+            KayrHitStop.cfgScheme:NewElement("specialAttackCoefficient", 0.75, KayrHitStop.UpdateConfigvalues, "class", "class")
 			 
 			-- Attack speeds faster than this are considered for fastAttackCoefficient
 			KayrHitStop.cfgScheme:NewElement("fastAttackThreshold", 1.75, KayrHitStop.UpdateConfigvalues, "class", "class")

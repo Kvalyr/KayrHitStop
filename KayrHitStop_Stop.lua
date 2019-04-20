@@ -73,6 +73,16 @@ ignoredSpells["Shadowy Apparition"] = true
 KayrHitStop.ignoredSpells = ignoredSpells
 
 -- --------------------------------------------------------------------------------------------------------------------------------
+-- Fast Spells
+-- Abilities that land faster for some reason
+-- ----------------------------------------------------------------	
+local fastSpells = {}
+-- DK
+fastSpells["Death Strike"] = true
+
+local softLocked = false
+
+-- --------------------------------------------------------------------------------------------------------------------------------
 -- Stopper Function
 -- ----------------------------------------------------------------	
 -- currentHitStopDuration gets set by KayrHitStop:HitStop() just before Timer fire.
@@ -118,7 +128,13 @@ function KayrHitStop:HitStop(timestamp, event_type)
 	if UnitAttackSpeed("player") <= fastAttackThreshold then
 		hitstopDuration = hitstopDuration * fastAttackCoefficient
 	end	
-	
+    
+    -- Shorter delay for spells that land sooner
+    if spellName and fastSpells[spellName] then
+        KayrHitStop:Debug("Fast spell or swing damage:", spellName, hitstopDelay, hitstopDelay*specialAttackCoefficient)
+		hitstopDelay = hitstopDelay * specialAttackCoefficient
+		hitsoundDelay = hitstopDelay * ( specialAttackCoefficient * 0.5 )
+	end
 	-- Shorter hitstops for autoattacks, and different timing
 	if event_type == "SWING_DAMAGE" then
 		hitstopDuration = hitstopDuration / 2
