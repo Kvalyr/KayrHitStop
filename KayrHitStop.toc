@@ -9,3 +9,4 @@ KayrLib\KayrLib.xml
 KayrHitStop.lua
 KayrHitStop_Stop.lua
 KayrHitStop_Sound.lua
+KayrHitStop_Flash.lua

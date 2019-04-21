@@ -3,11 +3,13 @@
 -- ----------------------------------------------------------------	
 local KLib = _G["KLib"]
 local KayrHitStop = _G["KayrHitStop"]
+local KHS = KayrHitStop
 
 -- --------------------------------------------------------------------------------------------------------------------------------
 -- Config
 -- ----------------------------------------------------------------	
 local enableHitStop = true
+local enableHitFlash = true
 local enableHitSound = true
 local hitSoundCritsOnly = true
 local ignoreAoE = false
@@ -30,15 +32,23 @@ local baseHitstopDelay = 0.125 --0.035
 -- Callback to update these file-local values from Cfg
 function KayrHitStop.UpdateConfigvalues(CfgScheme, element, ...)
 	CfgScheme = CfgScheme or KayrHitStop.cfgScheme
-	KLib:Con("KayrHitStop.UpdateConfigvalues", KLScheme, element, ...)
+    KLib:Con("KayrHitStop.UpdateConfigvalues", KLScheme, element, ...)
+
 	enableHitStop = CfgScheme:Get("enableHitStop")
+    hitStopCritsOnly = CfgScheme:Get("hitStopCritsOnly")
+
+    enableHitFlash = CfgScheme:Get("enableHitFlash")
+    hitFlashCritsOnly = CfgScheme:Get("hitFlashCritsOnly")
+    
     enableHitSound = CfgScheme:Get("enableHitSound")
     hitSoundCritsOnly = CfgScheme:Get("hitSoundCritsOnly")
+    
 	ignoreAoE = CfgScheme:Get("ignoreAoE")
 	meleeOnly = CfgScheme:Get("meleeOnly")
 	spellBookOnly = CfgScheme:Get("spellBookOnly")
 	AutoAttackHitSound = CfgScheme:Get("AutoAttackHitSound")
 	AutoAttackHitStop = CfgScheme:Get("AutoAttackHitStop")
+	AutoAttackHitFlash = CfgScheme:Get("AutoAttackHitStop")
 	fastAttackThreshold = CfgScheme:Get("fastAttackThreshold")
 	fastAttackCoefficient = CfgScheme:Get("fastAttackCoefficient")
 	specialAttackCoefficient = CfgScheme:Get("specialAttackCoefficient")
@@ -62,9 +72,10 @@ KayrHitStop.hitStopEvents = hitStopEvents
 local ignoredSpells = {}
 -- DK
 ignoredSpells["Death and Decay"] = true
+ignoredSpells["Death Chain"] = true
 ignoredSpells["Defile"] = true
 ignoredSpells["Bone Spike Graveyard"] = true
-ignoredSpells["Blood Boil"] = true
+--ignoredSpells["Blood Boil"] = true
 -- DH
 ignoredSpells["Eye Beam"] = true
 ignoredSpells["Chaos Nova"] = true
@@ -102,7 +113,7 @@ function KayrHitStop.Stopper(dur_seconds)
 	dur = dur * frameRateCoeff * frameRateCoeff  
 
     if softLocked then KayrHitStop:Debug("Skipping due to softLock") return end
-    KayrHitStop:Debug("Slomo step", dur)
+    --KayrHitStop:Debug("Slomo step", dur)
 
     softLocked = true
 	local start = debugprofilestop()
@@ -151,15 +162,13 @@ function KayrHitStop:HitStop(timestamp, event_type, critical, spellName)
 
 	local idealWorldLatencyMs = 25 -- Treating 25ms as ideal latency
 	local _, _, _, worldLatencyMs = GetNetStats()
-	local latencyOffset = (worldLatencyMs - idealWorldLatencyMs) / 1000 -- ms
+	local latencyOffset = (worldLatencyMs - idealWorldLatencyMs) / 1000 -- ms -> s
 	
 	local hitstopDuration = baseHitstopDuration
 	local hitstopDelay = baseHitstopDelay + latencyOffset
 	local hitsoundDelay = hitstopDelay * 0.4
     hitStopDelay = max(baseHitstopDelay, idealWorldLatencyMs / 1000)
     
-
-	
 	-- Adjust hitstop duration for faster-attacking specs (Dual-Wield, etc.)
 	if UnitAttackSpeed("player") <= fastAttackThreshold then
 		hitstopDuration = hitstopDuration * fastAttackCoefficient
@@ -171,15 +180,22 @@ function KayrHitStop:HitStop(timestamp, event_type, critical, spellName)
 		hitstopDelay = hitstopDelay * specialAttackCoefficient
 		hitsoundDelay = hitstopDelay * ( specialAttackCoefficient * 0.5 )
 	end
+
 	-- Shorter hitstops for autoattacks, and different timing
-	if event_type == "SWING_DAMAGE" then
-		hitstopDuration = hitstopDuration / 2
+    if (event_type == "SWING_DAMAGE") then
+		hitstopDuration = hitstopDuration * 0.5
 		hitstopDelay = hitstopDelay * 2
 		hitsoundDelay = hitstopDelay * 2
 	end
 
-	--KayrHitStop:Con("HitStop: ", timestamp, event_type, hitstopDuration, hitstopDelay, hitsoundDelay, frameRateCoeff)
-	
+	KayrHitStop:Debug("HitStop: ", timestamp, event_type, hitstopDuration, hitstopDelay, hitsoundDelay)--, frameRateCoeff)
+    
+    if enableHitFlash and (event_type ~= "SWING_DAMAGE" or AutoAttackHitFlash) then
+        if critical or not hitFlashCritsOnly then
+            C_Timer.After(hitsoundDelay * 0.5, KayrHitStop.HitFlash)
+        end
+    end
+    
 	if enableHitSound and (event_type ~= "SWING_DAMAGE" or AutoAttackHitSound) then
         if not hitSoundCritsOnly then
             C_Timer.After(hitsoundDelay, KayrHitStop.HitSound)
