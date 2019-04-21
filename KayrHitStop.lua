@@ -12,7 +12,7 @@
 	
 	-- Global-scope addon frame for event handling and external access
 	local version = { major = 0.1, minor = 0.1}
-	local KLversion = {major = 0.5, minor = 41 }
+	local KLversion = {major = 0.5, minor = 44 }
 	local addonName = "KayrHitStop"
 	local addonPrefix = "KHS"
 	local author = "Kvalyr"

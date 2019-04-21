@@ -31,6 +31,7 @@ local baseHitstopDelay = 0.125 --0.035
 
 -- Callback to update these file-local values from Cfg
 function KayrHitStop.UpdateConfigvalues(CfgScheme, element, ...)
+    if not KayrHitStop.ready then return end
 	CfgScheme = CfgScheme or KayrHitStop.cfgScheme
     KLib:Con("KayrHitStop.UpdateConfigvalues", KLScheme, element, ...)
 
