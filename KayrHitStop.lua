@@ -58,7 +58,7 @@
 			KayrHitStop.cfgScheme:NewElement("fastAttackThreshold", 1.75, KayrHitStop.UpdateConfigvalues, "class", "class")
 			 
 			-- Length of time in seconds that the hitstop lasts for. Anything above 200ms feels bad.
-			KayrHitStop.cfgScheme:NewElement("baseHitstopDuration", 0.075, KayrHitStop.UpdateConfigvalues, "class", "class")
+			KayrHitStop.cfgScheme:NewElement("baseHitstopDuration", 0.015, KayrHitStop.UpdateConfigvalues, "class", "class")
 			 
 			-- Length of time in seconds from receipt of combat log event to triggering the hitstop. Combat log events occur before the player animates their hit. This value is a very rough way to sync the hitstop with the on-screen action.
 			KayrHitStop.cfgScheme:NewElement("baseHitstopDelay", 0.04, KayrHitStop.UpdateConfigvalues, "class", "class")
@@ -78,7 +78,8 @@
 		KayrHitStop.hasRun = true
 		KayrHitStop.UpdateConfigvalues(KayrHitStop.cfgScheme)
 		KayrHitStop:AddEventFunc("COMBAT_LOG_EVENT_UNFILTERED")
-		KayrHitStop.ready = true
+        KayrHitStop.ready = true
+        KayrHitStop.firstHitDone = false
 	end
 	
 	-- --------------------------------------------------------------------------------------------------------------------------------
@@ -143,7 +144,12 @@
 		if ignoreAoE and not KayrHitStop:tobool(IsSpellInRange(spellName)) then 
 			KayrHitStop:Debug("HitStop skipped AoE:", event_type, spellName)
 			return
-		end
-		
+        end
+        
+        -- Ensure we pull the cfg values from the live scheme
+        if not KayrHitStop.firstHitDone then
+            KayrHitStop.UpdateConfigvalues(KayrHitStop.cfgScheme)
+        end
+
 		KayrHitStop:HitStop(timestamp, event_type, critical, spellName)
 	end

@@ -9,7 +9,9 @@ local KHS = KayrHitStop
 -- Config
 -- ----------------------------------------------------------------	
 local enableHitStop = true
+local hitStopCritsOnly = true
 local enableHitFlash = true
+local hitFlashCritsOnly = true
 local enableHitSound = true
 local hitSoundCritsOnly = true
 local ignoreAoE = false
@@ -17,14 +19,16 @@ local meleeOnly = false
 local spellBookOnly = false
 local AutoAttackHitSound = false
 local AutoAttackHitStop = false
+local AutoAttackHitFlash = false
 local fastAttackThreshold = 1.75
 local fastAttackCoefficient = 0.75 -- Hitstop Duration multiplier for players that attack faster (Arms, Frost, Feral, Rogue, etc.)
+local specialAttackCoefficient = 0.75 -- Hitstop Duration multiplier for players that attack faster (Arms, Frost, Feral, Rogue, etc.)
 local minimumHitFrameRateMultiplier = 0.5 -- HitStop duration is adjusted for framerate below 60fps between <minimumHitFrameRateMultiplier> and 1.0
 
 local slomoSteps = 10
 
  -- 80ms feels good, anything up to 200ms works well as a matter of preference
-local baseHitstopDuration = 0.075  --0.125
+local baseHitstopDuration = 0.015
 
 -- 0.04 feels good for fire spells, monk melee, Heart Strike, Death Strike, Worgen Male
 local baseHitstopDelay = 0.125 --0.035
@@ -116,7 +120,6 @@ function KayrHitStop.Stopper(dur_seconds)
     if softLocked then KayrHitStop:Debug("Skipping due to softLock") return end
     --KayrHitStop:Debug("Slomo step", dur)
 
-    softLocked = true
 	local start = debugprofilestop()
 	local stop = start + dur
 	local cur = debugprofilestop()
@@ -127,6 +130,9 @@ function KayrHitStop.Stopper(dur_seconds)
     softLocked = false
 end
 
+-- --------------------------------------------------------------------------------------------------------------------------------
+-- SloMoStopper Function
+-- ----------------------------------------------------------------
 function KayrHitStop.SloMoStopper(dur_seconds, steps)
     dur_seconds = dur_seconds or currentHitStopDuration or baseHitstopDuration
     steps = steps or slomoSteps
@@ -206,7 +212,8 @@ function KayrHitStop:HitStop(timestamp, event_type, critical, spellName)
 		end
 	end
 
-    if enableHitStop and (event_type ~= "SWING_DAMAGE" or AutoAttackHitStop) then
+    if enableHitStop and not softLocked and (event_type ~= "SWING_DAMAGE" or AutoAttackHitStop) then
+        --softLocked = true
         -- Slomo
         local slomo = true
         if slomo then

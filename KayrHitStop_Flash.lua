@@ -16,7 +16,7 @@ local function CreateFlashFrame()
     flashFrame:SetPoint("CENTER")
     flashFrame:SetAllPoints()
     flashFrame:EnableMouse(false)
-    KLib:CreateBackdrop(flashFrame, KLib.TestBackdropTable_NoBorder, {0,0,0,0.75}, KLib.Colors.None)     
+    KLib:CreateBackdrop(flashFrame, KLib.TestBackdropTable_NoBorder, {0.5,0,0,0.85}, KLib.Colors.None)     
     KHS.flashFrame = flashFrame
     flashFrame:Hide()
     return flashFrame
